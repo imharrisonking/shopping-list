@@ -5,9 +5,18 @@ const itemList = document.getElementById('item-list');
 const clearButton = document.getElementById('clear');
 const itemFilter = document.getElementById('filter');
 const items = itemList.querySelectorAll('li');
+const formButton = itemForm.querySelector('button');
+let isEditMode = false;
 
 // Functions
-function addItem(e) {
+function displayItems() {
+    const itemsFromStorage = getItemsFromStorage();
+
+    itemsFromStorage.forEach(item => addItemToDOM(item));
+    checkUI();
+}
+
+function onAddItemSubmit(e) {
     e.preventDefault();
 
     const newItem = itemInput.value;
@@ -18,9 +27,38 @@ function addItem(e) {
         return;
     }
 
+    // Check if edit mode
+    if (isEditMode) {
+        const itemToEdit = itemList.querySelector('.edit-mode');
+
+        removeItemFromStorage(itemToEdit.textContent);
+        itemToEdit.classList.remove('edit-mode');
+        itemToEdit.remove()
+        isEditMode = false;
+    } else {
+        // Check if item already exists
+        if (checkIfItemExists(newItem)) {
+            alert('Item already exists');
+            return;
+        }
+    }
+
+    // Create item DOM element
+    addItemToDOM(newItem);
+
+    // Add item to local storage
+    addItemToStorage(newItem);
+
+    checkUI()
+
+    // Clear input
+    itemInput.value = '';
+}
+
+function addItemToDOM(item) {
     // Create list item
     const li = document.createElement('li');
-    li.appendChild(document.createTextNode(newItem));
+    li.appendChild(document.createTextNode(item));
 
     // Create delete button and icon and append to list item
     const button = createButton('remove-item btn-link text-red');
@@ -28,11 +66,6 @@ function addItem(e) {
 
     // Add li to the DOM
     itemList.appendChild(li);
-
-    checkUI()
-
-    // Clear input
-    itemInput.value = '';
 }
 
 function createButton(classes) {
@@ -48,23 +81,84 @@ function createIcon(classes) {
     icon.className = classes;
     return icon;
 }
+function addItemToStorage(item) {
+    const itemsFromStorage = getItemsFromStorage();
 
-function removeItem(e) {
-    if (e.target.parentElement.classList.contains('remove-item')) {
-        // Confirm delete
-        if (confirm('Are you sure?')) {
-            // Traverse DOM to remove list item
-            e.target.parentElement.parentElement.remove();
+    // Add item to array
+    itemsFromStorage.push(item);
 
-            checkUI();
-        }
-    };
+    // Convert to JSON string and store in local storage
+    localStorage.setItem('items', JSON.stringify(itemsFromStorage));
 }
 
-function clearItems(e) {
+function getItemsFromStorage() {
+    let itemsFromStorage;
+
+    if (localStorage.getItem('items') === null) {
+        itemsFromStorage = [];
+    } else {
+        itemsFromStorage = JSON.parse(localStorage.getItem('items'));
+    }
+
+    return itemsFromStorage;
+}
+
+function onClickItem(e) {
+    if (e.target.parentElement.classList.contains('remove-item')) {
+        removeItem(e.target.parentElement.parentElement); 
+    } else {
+        setItemToEdit(e.target);
+    }
+}
+
+function checkIfItemExists(item) {
+    const itemsFromStorage = getItemsFromStorage();
+    return itemsFromStorage.includes(item);
+}
+
+function setItemToEdit(item) {
+    isEditMode = true;
+
+    itemList.querySelectorAll('li').forEach(item => {
+        item.classList.remove('edit-mode'); 
+    });
+
+    item.classList.add('edit-mode');
+    formButton.innerHTML = '<i class="fa-solid fa-pen"></i> Update Item';
+    itemInput.value = item.textContent;
+    formButton.style.backgroundColor = '#228B22';
+}
+
+function removeItem(item) {
+    if (confirm('Are you sure?')) {
+        // Remove from DOM
+        item.remove();
+
+        // Remove from local storage
+        removeItemFromStorage(item.textContent);
+
+        checkUI();
+    }
+}
+
+function removeItemFromStorage(item) {
+    let itemsFromStorage = getItemsFromStorage();
+
+    // Filter out item to be removed
+    itemsFromStorage = itemsFromStorage.filter(i => i !== item);
+
+    // Reset to local storage
+    localStorage.setItem('items', JSON.stringify(itemsFromStorage));
+
+}
+
+function clearItems() {
     while (itemList.firstChild) {
         itemList.removeChild(itemList.firstChild)
     }
+
+    // Clear from local storage
+    localStorage.removeItem('items');
 
     checkUI();
 }
@@ -87,6 +181,8 @@ function filterItems(e) {
 }
 
 function checkUI() {
+    itemInput.value = '';
+
     const items = itemList.querySelectorAll('li');
     if (items.length === 0) {
         clearButton.style.display = 'none';
@@ -95,17 +191,24 @@ function checkUI() {
         clearButton.style.display = 'block';
         itemFilter.style.display = 'block';
     }
+
+    formButton.innerHTML = '<i class="fa-solid fa-plus"></i> Add Item';
+    formButton.style.backgroundColor = '#333';
 }
 
-// Event listeners
-itemForm.addEventListener('submit', addItem);
-itemList.addEventListener('click', removeItem);
-clearButton.addEventListener('click', clearItems);
-itemFilter.addEventListener('input', filterItems);
+// Initialise app
+function init() {
+    // Event listeners
+    itemForm.addEventListener('submit', onAddItemSubmit);
+    itemList.addEventListener('click', onClickItem);
+    clearButton.addEventListener('click', clearItems);
+    itemFilter.addEventListener('input', filterItems);
+    document.addEventListener('DOMContentLoaded', displayItems);
 
-checkUI();
+    checkUI();
+}
 
-
+init();
 
 
 
