@@ -6,4 +6,4 @@
 Vanilla JS shopping list app as a mini project to practise JavaScript, deplyoing the final interative map to Netlify.
 
 ### App Screenshot
-![Screenshot of app on mobile](/images/screenshot.jpeg)
+<img scr='./images/screenshot.jpeg' alt='App Screenshot' width=50% height=50%>
